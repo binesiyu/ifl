@@ -45,13 +45,13 @@ preludeDefs
                                       (EAp (EVar "g") (EVar "x"))),
       ("twice", ["f"], EAp (EAp (EVar "compose") (EVar "f")) (EVar "f")) ]
 pprint :: CoreProgram -> String
-pprExpr :: CoreExpr -> String
-pprExpr (ENum n) = show n
-pprExpr (EVar v) = v
-pprExpr (EAp e1 e2) = pprExpr e1 ++ " " ++ pprAExpr e2
-pprAExpr :: CoreExpr -> String
-pprAExpr e = isAtomicExpr e | pprExpr e
-pprAExpr e = otherwise | "(" ++ pprExpr e ++ ")"
+{-exs_1-}pprExpr :: CoreExpr -> String
+{-exs_1-}pprExpr (ENum n) = show n
+{-exs_1-}pprExpr (EVar v) = v
+{-exs_1-}pprExpr (EAp e1 e2) = pprExpr e1 ++ " " ++ pprAExpr e2
+{-exs_1-}pprAExpr :: CoreExpr -> String
+{-exs_1-}pprAExpr e = isAtomicExpr e | pprExpr e
+{-exs_1-}pprAExpr e = otherwise | "(" ++ pprExpr e ++ ")"
 mkMultiAp :: Int -> CoreExpr -> CoreExpr -> CoreExpr
 mkMultiAp n e1 e2 = foldll EAp e1 (take n e2s)
                     where
@@ -62,34 +62,34 @@ iAppend  :: Iseq -> Iseq -> Iseq  -- Append two iseqs
 iNewline :: Iseq                  -- New line with indentation
 iIndent  :: Iseq -> Iseq          -- Indent an iseq
 iDisplay :: Iseq -> String        -- Turn an iseq into a string
-pprExpr :: CoreExpr -> Iseq
-pprExpr (EVar v) = iStr v
-pprExpr (EAp e1 e2) = (pprExpr e1) `iAppend` (iStr " ") `iAppend` (pprAExpr e2)
-pprExpr (ELet isrec defns expr)
-  = iConcat [  iStr keyword, iNewline,
-               iStr "  ",iIndent (pprDefns defns),iNewline,
-               iStr "in ",pprExpr expr ]
-    where
-    keyword | not isrec = "let"
-            | isrec = "letrec"
+{-exs_2-}pprExpr :: CoreExpr -> Iseq
+{-exs_2-}pprExpr (EVar v) = iStr v
+{-exs_2-}pprExpr (EAp e1 e2) = (pprExpr e1) `iAppend` (iStr " ") `iAppend` (pprAExpr e2)
+{-exs_2-}pprExpr (ELet isrec defns expr)
+{-exs_2-}  = iConcat [  iStr keyword, iNewline,
+{-exs_2-}               iStr "  ",iIndent (pprDefns defns),iNewline,
+{-exs_2-}               iStr "in ",pprExpr expr ]
+{-exs_2-}    where
+{-exs_2-}    keyword | not isrec = "let"
+{-exs_2-}            | isrec = "letrec"
 iConcat     :: [Iseq] -> Iseq
 iInterleave :: Iseq -> [Iseq] -> Iseq
 pprint prog = iDisplay (pprProgram prog)
 iNil              = INil
 iAppend seq1 seq2 = IAppend seq1 seq2
 iStr str             = IStr str
-data Iseq = INil
-          | IStr String
-          | IAppend Iseq Iseq
-          | IIndent Iseq
-          | INewline
-
-iIndent seq = IIndent seq
-iNewline    = INewline
-flatten :: Int                       -- Current column; 0 for first column
-            -> [(Iseq, Int)]         -- Work list
-            -> String                -- Result
-iDisplay seq = flatten 0 [(seq,0)]
+{-exs_3-}data Iseq = INil
+{-exs_3-}          | IStr String
+{-exs_3-}          | IAppend Iseq Iseq
+{-exs_3-}          | IIndent Iseq
+{-exs_3-}          | INewline
+{-exs_3-}
+{-exs_3-}iIndent seq = IIndent seq
+{-exs_3-}iNewline    = INewline
+{-exs_3-}flatten :: Int                       -- Current column; 0 for first column
+{-exs_3-}            -> [(Iseq, Int)]         -- Work list
+{-exs_3-}            -> String                -- Result
+{-exs_3-}iDisplay seq = flatten 0 [(seq,0)]
 iNum :: Int -> Iseq
 iNum n = iStr (show n)
 iFWNum :: Int -> Int -> Iseq
@@ -111,17 +111,17 @@ parse = syntax . clex
 -- execution machine, and then give this composition to catWith
 -- from my utils
 type Token = String           -- A token is never empty
-clex (c:cs) | isWhiteSpace c = clex cs
-clex (c:cs) | isDigit c = num_token : clex rest_cs
-             where
-             num_token = c : takeWhile isDigit cs
-             rest_cs   = dropWhile isDigit cs
-clex (c:cs) | isAlpha c = var_tok : clex rest_cs
-             where
-             var_tok = c : takeWhile isIdChar cs
-             rest_cs = dropWhile isIdChar cs
-clex (c:cs) = [c] : clex cs
-clex [] = []
+{-exs_1-}clex (c:cs) | isWhiteSpace c = clex cs
+{-exs_1-}clex (c:cs) | isDigit c = num_token : clex rest_cs
+{-exs_1-}             where
+{-exs_1-}             num_token = c : takeWhile isDigit cs
+{-exs_1-}             rest_cs   = dropWhile isDigit cs
+{-exs_1-}clex (c:cs) | isAlpha c = var_tok : clex rest_cs
+{-exs_1-}             where
+{-exs_1-}             var_tok = c : takeWhile isIdChar cs
+{-exs_1-}             rest_cs = dropWhile isIdChar cs
+{-exs_1-}clex (c:cs) = [c] : clex cs
+{-exs_1-}clex [] = []
 isIdChar, isWhiteSpace :: Char -> Bool
 isIdChar c = isAlpha c || isDigit c || (c == '_')
 isWhiteSpace c = c `elem` " \t\n"
@@ -129,11 +129,11 @@ twoCharOps :: [String]
 twoCharOps = ["==", "~=", ">=", "<=", "->"]
 type Parser a = [Token] -> [(a, [Token])]
 pLit :: String -> Parser String
-pLit s (tok:toks) = s == tok | [(s, toks)]
-                  = otherwise | []
-pLit s []         = []
-pVar :: Parser String
-pVar []         = []
+{-exs_1-}pLit s (tok:toks) = s == tok | [(s, toks)]
+{-exs_1-}                  = otherwise | []
+{-exs_1-}pLit s []         = []
+{-exs_1-}pVar :: Parser String
+{-exs_1-}pVar []         = []
 pAlt :: Parser a -> Parser a -> Parser a
 pAlt p1 p2 toks = (p1 toks) ++ (p2 toks)
 pHelloOrGoodbye :: Parser String

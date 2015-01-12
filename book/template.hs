@@ -1,14 +1,14 @@
 module Template where
 import Language
 import Utils
-type MultState = (Int, Int, Int, Int)     -- (n, m, d, t)
-evalMult :: MultState -> [MultState]
-evalMult state = if multFinal state 
-                   then [state]
-                   else state : evalMult (stepMult state)
-stepMult (n, m, d, t) | d > 0  = (n, m,   d-1, t+1)
-stepMult (n, m, d, t) | d == 0 = (n, m-1, n,   t)
-multFinal :: MultState -> Bool
+{-exs_1-}type MultState = (Int, Int, Int, Int)     -- (n, m, d, t)
+{-exs_1-}evalMult :: MultState -> [MultState]
+{-exs_1-}evalMult state = if multFinal state 
+{-exs_1-}                   then [state]
+{-exs_1-}                   else state : evalMult (stepMult state)
+{-exs_1-}stepMult (n, m, d, t) | d > 0  = (n, m,   d-1, t+1)
+{-exs_1-}stepMult (n, m, d, t) | d == 0 = (n, m-1, n,   t)
+{-exs_1-}multFinal :: MultState -> Bool
 runProg :: [Char] -> [Char]      -- name changed to not conflict
 compile :: CoreProgram -> TiState
 eval :: TiState -> [TiState]
@@ -75,8 +75,8 @@ instantiate (EConstr tag arity) heap env
 instantiate (ELet isrec defs body) heap env
               = instantiateLet isrec defs body heap env
 instantiate (ECase e alts) heap env = error "Can't instantiate case exprs"
-instantiateLet isrec defs body heap env
-           = error "Can't instantiate let(rec)s yet"
+{-exs_1-}instantiateLet isrec defs body heap env
+{-exs_1-}           = error "Can't instantiate let(rec)s yet"
 showResults states
  = iDisplay (iConcat [ iLayn (map showState states),
                      showStats (last states)
@@ -113,57 +113,57 @@ showStats (stack, dump, heap, globals, stats)
  = iConcat [ iNewline, iNewline, iStr "Total number of steps = ",
              iNum (tiStatGetSteps stats)
    ]
-data Node = NAp Addr Addr                      -- Application
-           | NSupercomb Name [Name] CoreExpr   -- Supercombinator
-           | NNum Int                          -- Number
-           | NInd Addr                         -- Indirection
-data Node = NAp Addr Addr                       -- Application
-            | NSupercomb Name [Name] CoreExpr   -- Supercombinator
-            | NNum Int                          -- Number
-            | NInd Addr                         -- Indirection
-            | NPrim Name Primitive              -- Primitive
-data Primitive = Neg | Add | Sub | Mul | Div
-primitives :: ASSOC Name Primitive
-primitives = [ ("negate", Neg),
-               ("+", Add),   ("-", Sub),
-               ("*", Mul),   ("/", Div)
-             ]
-primStep state Neg   = primNeg state
-primStep state Add = primArith state (+)
-primStep state Sub = primArith state (-)
-primStep state Mul = primArith state (*)
-primStep state Div = primArith state (div)
-primArith :: TiState -> (Int -> Int -> Int) -> TiState
-data Node = NAp Addr Addr                     -- Application
-          | NSupercomb Name [Name] CoreExpr   -- Supercombinator
-          | NNum Int                          -- Number
-          | NInd Addr                         -- Indirection
-          | NPrim Name Primitive              -- Primitive
-          | NData Int [Addr]                  -- Tag, list of components
-findStackRoots  :: TiStack -> [Addr]
-findDumpRoots   :: TiDump -> [Addr]
-findGlobalRoots :: TiGlobals -> [Addr]
-markFrom :: TiHeap -> Addr -> TiHeap
-scanHeap :: TiHeap -> TiHeap
-data Node = NAp Addr Addr                     -- Application
-          | NSupercomb Name [Name] CoreExpr   -- Supercombinator
-          | NNum Int                          -- Number
-          | NInd Addr                         -- Indirection
-          | NPrim Name Primitive              -- Primitive
-          | NData Int [Addr]                  -- Tag, list of components
-          | NMarked Node                      -- Marked node
-markFrom :: TiHeap -> Addr -> (TiHeap, Addr)
-markFromStack   :: TiHeap -> TiStack   -> (TiHeap,TiStack)
-markFromDump    :: TiHeap -> TiDump    -> (TiHeap,TiDump)
-markFromGlobals :: TiHeap -> TiGlobals -> (TiHeap,TiGlobals)
-data Node = NAp Addr Addr                     -- Application
-          | NSupercomb Name [Name] CoreExpr   -- Supercombinator
-          | NNum Int                          -- Number
-          | NInd Addr                         -- Indirection
-          | NPrim Name Primitive              -- Primitive
-          | NData Int [Addr]                  -- Tag, list of components
-          | NMarked MarkState Node            -- Marked node
-data markState = Done         -- Marking on this node finished
-               | Visits Int   -- Node visited n times so far
-evacuateStack :: TiHeap -> TiHeap -> TiStack -> (TiHeap, TiStack)
-scavengeHeap :: TiHeap -> TiHeap -> TiHeap
+{-exs_3-}data Node = NAp Addr Addr                      -- Application
+{-exs_3-}           | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+{-exs_3-}           | NNum Int                          -- Number
+{-exs_3-}           | NInd Addr                         -- Indirection
+{-exs_4-}data Node = NAp Addr Addr                       -- Application
+{-exs_4-}            | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+{-exs_4-}            | NNum Int                          -- Number
+{-exs_4-}            | NInd Addr                         -- Indirection
+{-exs_4-}            | NPrim Name Primitive              -- Primitive
+{-exs_4-}data Primitive = Neg | Add | Sub | Mul | Div
+{-exs_4-}primitives :: ASSOC Name Primitive
+{-exs_4-}primitives = [ ("negate", Neg),
+{-exs_4-}               ("+", Add),   ("-", Sub),
+{-exs_4-}               ("*", Mul),   ("/", Div)
+{-exs_4-}             ]
+{-exs_4-}primStep state Neg   = primNeg state
+{-exs_4-}primStep state Add = primArith state (+)
+{-exs_4-}primStep state Sub = primArith state (-)
+{-exs_4-}primStep state Mul = primArith state (*)
+{-exs_4-}primStep state Div = primArith state (div)
+{-exs_4-}primArith :: TiState -> (Int -> Int -> Int) -> TiState
+{-exs_5-}data Node = NAp Addr Addr                     -- Application
+{-exs_5-}          | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+{-exs_5-}          | NNum Int                          -- Number
+{-exs_5-}          | NInd Addr                         -- Indirection
+{-exs_5-}          | NPrim Name Primitive              -- Primitive
+{-exs_5-}          | NData Int [Addr]                  -- Tag, list of components
+{-exs_6-}findStackRoots  :: TiStack -> [Addr]
+{-exs_6-}findDumpRoots   :: TiDump -> [Addr]
+{-exs_6-}findGlobalRoots :: TiGlobals -> [Addr]
+{-exs_6-}markFrom :: TiHeap -> Addr -> TiHeap
+{-exs_6-}scanHeap :: TiHeap -> TiHeap
+{-exs_6-}data Node = NAp Addr Addr                     -- Application
+{-exs_6-}          | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+{-exs_6-}          | NNum Int                          -- Number
+{-exs_6-}          | NInd Addr                         -- Indirection
+{-exs_6-}          | NPrim Name Primitive              -- Primitive
+{-exs_6-}          | NData Int [Addr]                  -- Tag, list of components
+{-exs_6-}          | NMarked Node                      -- Marked node
+{-exs_7-}markFrom :: TiHeap -> Addr -> (TiHeap, Addr)
+{-exs_7-}markFromStack   :: TiHeap -> TiStack   -> (TiHeap,TiStack)
+{-exs_7-}markFromDump    :: TiHeap -> TiDump    -> (TiHeap,TiDump)
+{-exs_7-}markFromGlobals :: TiHeap -> TiGlobals -> (TiHeap,TiGlobals)
+{-exs_8-}data Node = NAp Addr Addr                     -- Application
+{-exs_8-}          | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+{-exs_8-}          | NNum Int                          -- Number
+{-exs_8-}          | NInd Addr                         -- Indirection
+{-exs_8-}          | NPrim Name Primitive              -- Primitive
+{-exs_8-}          | NData Int [Addr]                  -- Tag, list of components
+{-exs_8-}          | NMarked MarkState Node            -- Marked node
+{-exs_8-}data markState = Done         -- Marking on this node finished
+{-exs_8-}               | Visits Int   -- Node visited n times so far
+{-exs_9-}evacuateStack :: TiHeap -> TiHeap -> TiStack -> (TiHeap, TiStack)
+{-exs_9-}scavengeHeap :: TiHeap -> TiHeap -> TiHeap

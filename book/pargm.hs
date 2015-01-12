@@ -76,31 +76,31 @@ showState :: PgmState -> Iseq
 showStats :: PgmState -> Iseq
 showOutput :: GmOutput -> Iseq
 showSparks :: GmSparks -> Iseq
-steps :: PgmState -> PgmState
-steps state
- = scheduler global' local'
-   where ((out, heap, globals, sparks, stats), local) = state
-         newtasks = [makeTask a | a <- sparks]
-         global'  = (out, heap, globals, [], stats)
-         local'   = local ++ newtasks
-scheduler :: PgmGlobalState -> [PgmLocalState] -> PgmState
-scheduler global tasks
- = (global', nonRunning ++ tasks')
-   where running    = map tick (take machineSize tasks)
-         nonRunning = drop machineSize tasks
-         (global', tasks') = mapAccuml step global running
-data Node = NNum Int                          -- Numbers
-         | NAp  Addr Addr                     -- Applications
-         | NGlobal Int GmCode                 -- Globals
-         | NInd Addr                          -- Indirections
-         | NConstr Int [Addr]                 -- Constructors
-         | NLAp Addr Addr PgmPendingList      -- Locked applications
-         | NLGlobal Int GmCode PgmPendingList -- Locked globals
-type PgmPendingList = [PgmLocalState]
-type GmSparks = [PgmLocalState]
-emptyPendingList :: [PgmLocalState] -> GmState -> GmState
-emptyPendingList tasks state
- = putSparks (tasks ++ getSparks state) state
-emptyTask :: PgmLocalState
-emptyTask = ([], [], [], [], 0)
-getArg (NLAp a1 a2 pl) = a2
+{-exs_3-}steps :: PgmState -> PgmState
+{-exs_3-}steps state
+{-exs_3-} = scheduler global' local'
+{-exs_3-}   where ((out, heap, globals, sparks, stats), local) = state
+{-exs_3-}         newtasks = [makeTask a | a <- sparks]
+{-exs_3-}         global'  = (out, heap, globals, [], stats)
+{-exs_3-}         local'   = local ++ newtasks
+{-exs_3-}scheduler :: PgmGlobalState -> [PgmLocalState] -> PgmState
+{-exs_3-}scheduler global tasks
+{-exs_3-} = (global', nonRunning ++ tasks')
+{-exs_3-}   where running    = map tick (take machineSize tasks)
+{-exs_3-}         nonRunning = drop machineSize tasks
+{-exs_3-}         (global', tasks') = mapAccuml step global running
+{-exs_4-}data Node = NNum Int                          -- Numbers
+{-exs_4-}         | NAp  Addr Addr                     -- Applications
+{-exs_4-}         | NGlobal Int GmCode                 -- Globals
+{-exs_4-}         | NInd Addr                          -- Indirections
+{-exs_4-}         | NConstr Int [Addr]                 -- Constructors
+{-exs_4-}         | NLAp Addr Addr PgmPendingList      -- Locked applications
+{-exs_4-}         | NLGlobal Int GmCode PgmPendingList -- Locked globals
+{-exs_4-}type PgmPendingList = [PgmLocalState]
+{-exs_4-}type GmSparks = [PgmLocalState]
+{-exs_4-}emptyPendingList :: [PgmLocalState] -> GmState -> GmState
+{-exs_4-}emptyPendingList tasks state
+{-exs_4-} = putSparks (tasks ++ getSparks state) state
+{-exs_4-}emptyTask :: PgmLocalState
+{-exs_4-}emptyTask = ([], [], [], [], 0)
+{-exs_4-}getArg (NLAp a1 a2 pl) = a2
