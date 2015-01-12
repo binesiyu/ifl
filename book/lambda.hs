@@ -151,5 +151,6 @@ collectSCs_e (ELet is_rec defns body)
 isELam :: Expr a -> Bool
 isELam (ELam args body) = True
 isELam other            = False
+mkELet is_rec defns body = ELet is_rec defns body
 
 runD = pprint . dependency . parse

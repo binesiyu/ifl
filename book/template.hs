@@ -1,6 +1,14 @@
 module Template where
 import Language
 import Utils
+type MultState = (Int, Int, Int, Int)     -- (n, m, d, t)
+evalMult :: MultState -> [MultState]
+evalMult state = if multFinal state 
+                   then [state]
+                   else state : evalMult (stepMult state)
+stepMult (n, m, d, t) | d > 0  = (n, m,   d-1, t+1)
+stepMult (n, m, d, t) | d == 0 = (n, m-1, n,   t)
+multFinal :: MultState -> Bool
 runProg :: [Char] -> [Char]      -- name changed to not conflict
 compile :: CoreProgram -> TiState
 eval :: TiState -> [TiState]
@@ -67,6 +75,8 @@ instantiate (EConstr tag arity) heap env
 instantiate (ELet isrec defs body) heap env
               = instantiateLet isrec defs body heap env
 instantiate (ECase e alts) heap env = error "Can't instantiate case exprs"
+instantiateLet isrec defs body heap env
+           = error "Can't instantiate let(rec)s yet"
 showResults states
  = iDisplay (iConcat [ iLayn (map showState states),
                      showStats (last states)
@@ -103,3 +113,57 @@ showStats (stack, dump, heap, globals, stats)
  = iConcat [ iNewline, iNewline, iStr "Total number of steps = ",
              iNum (tiStatGetSteps stats)
    ]
+data Node = NAp Addr Addr                      -- Application
+           | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+           | NNum Int                          -- Number
+           | NInd Addr                         -- Indirection
+data Node = NAp Addr Addr                       -- Application
+            | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+            | NNum Int                          -- Number
+            | NInd Addr                         -- Indirection
+            | NPrim Name Primitive              -- Primitive
+data Primitive = Neg | Add | Sub | Mul | Div
+primitives :: ASSOC Name Primitive
+primitives = [ ("negate", Neg),
+               ("+", Add),   ("-", Sub),
+               ("*", Mul),   ("/", Div)
+             ]
+primStep state Neg   = primNeg state
+primStep state Add = primArith state (+)
+primStep state Sub = primArith state (-)
+primStep state Mul = primArith state (*)
+primStep state Div = primArith state (div)
+primArith :: TiState -> (Int -> Int -> Int) -> TiState
+data Node = NAp Addr Addr                     -- Application
+          | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+          | NNum Int                          -- Number
+          | NInd Addr                         -- Indirection
+          | NPrim Name Primitive              -- Primitive
+          | NData Int [Addr]                  -- Tag, list of components
+findStackRoots  :: TiStack -> [Addr]
+findDumpRoots   :: TiDump -> [Addr]
+findGlobalRoots :: TiGlobals -> [Addr]
+markFrom :: TiHeap -> Addr -> TiHeap
+scanHeap :: TiHeap -> TiHeap
+data Node = NAp Addr Addr                     -- Application
+          | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+          | NNum Int                          -- Number
+          | NInd Addr                         -- Indirection
+          | NPrim Name Primitive              -- Primitive
+          | NData Int [Addr]                  -- Tag, list of components
+          | NMarked Node                      -- Marked node
+markFrom :: TiHeap -> Addr -> (TiHeap, Addr)
+markFromStack   :: TiHeap -> TiStack   -> (TiHeap,TiStack)
+markFromDump    :: TiHeap -> TiDump    -> (TiHeap,TiDump)
+markFromGlobals :: TiHeap -> TiGlobals -> (TiHeap,TiGlobals)
+data Node = NAp Addr Addr                     -- Application
+          | NSupercomb Name [Name] CoreExpr   -- Supercombinator
+          | NNum Int                          -- Number
+          | NInd Addr                         -- Indirection
+          | NPrim Name Primitive              -- Primitive
+          | NData Int [Addr]                  -- Tag, list of components
+          | NMarked MarkState Node            -- Marked node
+data markState = Done         -- Marking on this node finished
+               | Visits Int   -- Node visited n times so far
+evacuateStack :: TiHeap -> TiHeap -> TiStack -> (TiHeap, TiStack)
+scavengeHeap :: TiHeap -> TiHeap -> TiHeap

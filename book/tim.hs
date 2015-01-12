@@ -1,6 +1,7 @@
 module Tim where
 import Utils
 import Language
+intCode = []
 runProg     :: [Char] -> [Char]
 compile     :: CoreProgram -> TimState
 eval        :: TimState -> [TimState]
@@ -10,11 +11,15 @@ runProg = showResults . eval . compile . parse
 fullRun :: [Char] -> [Char]
 fullRun = showFullResults . eval . compile . parse
 -- :a language.lhs  -- parser data types
+data Instruction = Take Int
+                 | Enter TimAMode
+                 | Push TimAMode
 data FramePtr = FrameAddr Addr         -- The address of a frame
               | FrameInt Int           -- An integer value
               | FrameNull              -- Uninitialised
 type TimStack = [Closure]
 type Closure = ([Instruction], FramePtr)
+data TimValueStack = DummyTimValueStack
 type TimHeap = Heap Frame
 
 fAlloc   :: TimHeap -> [Closure] -> (TimHeap, FramePtr)
@@ -46,9 +51,15 @@ statInitial = 0
 statIncSteps s = s+1
 statGetSteps s = s
 -- :a util.lhs -- heap data type and other library functions
+initialArgStack = []
+initialValueStack = DummyTimValueStack
 compiledPrimitives = []
 type TimCompilerEnv = [(Name, TimAMode)]
 compileSC :: TimCompilerEnv -> CoreScDefn -> (Name, [Instruction])
+compileR (EAp e1 e2) env = Push (compileA e2 env) : compileR e1 env
+compileR (EVar v)    env = [Enter (compileA (EVar v) env)]
+compileR (ENum n)    env = [Enter (compileA (ENum n) env)]
+compileR e           env = error "compileR: can't do this yet"
 eval state
  = state : rest_states  where
                         rest_states | timFinal state = []
@@ -56,6 +67,16 @@ eval state
                         next_state  = doAdmin (step state)
 
 doAdmin state = applyToStats statIncSteps state
+step ((Take n:instr), fptr, stack, vstack, dump, heap, cstore,stats)
+ | length stack >= n = (instr, fptr', drop n stack, vstack, dump, heap', cstore, stats)
+ | otherwise         = error "Too few args for Take instruction"
+   where (heap', fptr') = fAlloc heap (take n stack)
+step ([Enter am], fptr, stack, vstack, dump, heap, cstore, stats)
+ = (instr', fptr', stack, vstack, dump, heap, cstore, stats)
+   where (instr',fptr') = amToClosure am fptr heap cstore
+step ((Push am:instr), fptr, stack, vstack, dump, heap, cstore, stats)
+ = (instr, fptr, amToClosure am fptr heap cstore : stack,
+    vstack, dump, heap, cstore, stats)
 showFullResults states
  = iDisplay (iConcat [
        iStr "Supercombinator definitions", iNewline, iNewline,
@@ -92,6 +113,7 @@ showStack stack
                iStr "]", iNewline
    ]
 showValueStack :: TimValueStack -> Iseq
+showValueStack vstack = iNil
 showDump :: TimDump -> Iseq
 showClosure :: Closure -> Iseq
 showClosure (i,f)
@@ -117,9 +139,29 @@ showInstructions Full il
    where
    sep = iStr "," `iAppend` iNewline
    instrs = map (showInstruction Full) il
+showInstruction d (Take m)  = (iStr "Take ")  `iAppend` (iNum m)
+showInstruction d (Enter x) = (iStr "Enter ") `iAppend` (showArg d x)
+showInstruction d (Push x)  = (iStr "Push ")  `iAppend` (showArg d x)
 nTerse = 3
+data Instruction = Take Int
+                 | Push TimAMode
+                 | PushV ValueAMode
+                 | Enter TimAMode
+                 | Return
+                 | Op Op
+                 | Cond [Instruction] [Instruction]
 mkIndMode :: Int -> TimAMode
 mkIndMode n = Code [Enter (Arg n)]
 mkEnter :: TimAMode -> [Instruction]
 mkEnter (Code i) = i
 mkEnter other_am = [Enter other_am]
+type CodeStore = (Addr, ASSOC Name Int)
+allocateInitialHeap :: [(Name, [Instruction])] -> (TimHeap, CodeStore)
+allocateInitialHeap compiled_code
+ = (heap, (global_frame_addr, offsets))
+   where
+   indexed_code = zip2 [1..] compiled_code
+   offsets = [(name, offset) | (offset, (name, code)) <- indexed_code]
+   closures = [(PushMarker offset : code, global_frame_addr) |
+                      (offset, (name, code)) <- indexed_code]
+   (heap, global_frame_addr) = fAlloc hInitial closures

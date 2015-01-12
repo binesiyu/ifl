@@ -76,3 +76,31 @@ showState :: PgmState -> Iseq
 showStats :: PgmState -> Iseq
 showOutput :: GmOutput -> Iseq
 showSparks :: GmSparks -> Iseq
+steps :: PgmState -> PgmState
+steps state
+ = scheduler global' local'
+   where ((out, heap, globals, sparks, stats), local) = state
+         newtasks = [makeTask a | a <- sparks]
+         global'  = (out, heap, globals, [], stats)
+         local'   = local ++ newtasks
+scheduler :: PgmGlobalState -> [PgmLocalState] -> PgmState
+scheduler global tasks
+ = (global', nonRunning ++ tasks')
+   where running    = map tick (take machineSize tasks)
+         nonRunning = drop machineSize tasks
+         (global', tasks') = mapAccuml step global running
+data Node = NNum Int                          -- Numbers
+         | NAp  Addr Addr                     -- Applications
+         | NGlobal Int GmCode                 -- Globals
+         | NInd Addr                          -- Indirections
+         | NConstr Int [Addr]                 -- Constructors
+         | NLAp Addr Addr PgmPendingList      -- Locked applications
+         | NLGlobal Int GmCode PgmPendingList -- Locked globals
+type PgmPendingList = [PgmLocalState]
+type GmSparks = [PgmLocalState]
+emptyPendingList :: [PgmLocalState] -> GmState -> GmState
+emptyPendingList tasks state
+ = putSparks (tasks ++ getSparks state) state
+emptyTask :: PgmLocalState
+emptyTask = ([], [], [], [], 0)
+getArg (NLAp a1 a2 pl) = a2
