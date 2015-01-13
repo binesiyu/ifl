@@ -20,7 +20,12 @@ runProg = showResults . eval . compile . parse  -- "run": name conflict
 -- import Utils
 type TiState = (TiStack, TiDump, TiHeap, TiGlobals, TiStats)
 type TiStack = [Addr]
+{-exs_1-3-}data TiDump = DummyTiDump
+{-exs_1-3-}initialTiDump = DummyTiDump
 type TiHeap = Heap Node
+{-exs_1-2-}data Node = NAp Addr Addr                     -- Application
+{-exs_1-2-}            | NSupercomb Name [Name] CoreExpr -- Supercombinator
+{-exs_1-2-}            | NNum Int                        -- A number
 type TiGlobals = ASSOC Name Addr
 tiStatInitial  :: TiStats
 tiStatIncSteps :: TiStats -> TiStats
@@ -41,6 +46,9 @@ compile program
 
    initial_stack = [address_of_main]
    address_of_main = aLookup globals "main" (error "main is not defined")
+{-exs_1-4-}extraPreludeDefs = []
+{-exs_1-3-}buildInitialHeap :: [CoreScDefn] -> (TiHeap, TiGlobals)
+{-exs_1-3-}buildInitialHeap sc_defs = mapAccuml allocateSc hInitial sc_defs
 allocateSc :: TiHeap -> CoreScDefn -> (TiHeap, (Name, Addr))
 allocateSc heap (name, args, body)
  = (heap', (name, addr))
@@ -53,7 +61,39 @@ eval state = state : rest_states
              next_state  = doAdmin (step state)
 doAdmin :: TiState -> TiState
 doAdmin state = applyToStats tiStatIncSteps state
+{-exs_1-3-}tiFinal :: TiState -> Bool
+{-exs_1-3-}
+{-exs_1-3-}tiFinal ([sole_addr], dump, heap, globals, stats)
+{-exs_1-3-} = isDataNode (hLookup heap sole_addr)
+{-exs_1-3-}
+{-exs_1-3-}tiFinal ([], dump, heap, globals, stats) = error "Empty stack!"
+{-exs_1-3-}tiFinal state = False              -- Stack contains more than one item
+{-exs_1-4-}isDataNode :: Node -> Bool
+{-exs_1-4-}isDataNode (NNum n) = True
+{-exs_1-4-}isDataNode node     = False
 step :: TiState -> TiState
+{-exs_1-2-}step state
+{-exs_1-2-} = dispatch (hLookup heap (hd stack))
+{-exs_1-2-}   where
+{-exs_1-2-}   (stack, dump, heap, globals, stats) = state
+{-exs_1-2-}
+{-exs_1-2-}   dispatch (NNum n)                  = numStep state n
+{-exs_1-2-}   dispatch (NAp a1 a2)               = apStep  state a1 a2
+{-exs_1-2-}   dispatch (NSupercomb sc args body) = scStep  state sc args body
+{-exs_1-2-}numStep :: TiState -> Int -> TiState
+{-exs_1-2-}numStep state n = error "Number applied as a function!"
+{-exs_1-3-}apStep :: TiState -> Addr -> Addr -> TiState
+{-exs_1-3-}apStep (stack, dump, heap, globals, stats) a1 a2
+{-exs_1-3-} = (a1 : stack, dump, heap, globals, stats)
+{-exs_1-2-}scStep   :: TiState -> Name -> [Name] -> CoreExpr -> TiState
+{-exs_1-2-}scStep (stack, dump, heap, globals, stats) sc_name arg_names body
+{-exs_1-2-} = (new_stack, dump, new_heap, globals, stats)
+{-exs_1-2-}   where
+{-exs_1-2-}   new_stack = result_addr : (drop (length arg_names+1) stack)
+{-exs_1-2-}
+{-exs_1-2-}   (new_heap, result_addr) = instantiate body heap env
+{-exs_1-2-}   env = arg_bindings ++ globals
+{-exs_1-2-}   arg_bindings = zip2 arg_names (getargs heap stack)
 -- now getargs since getArgs conflicts with Gofer standard.prelude
 getargs :: TiHeap -> TiStack -> [Addr]
 getargs heap (sc:stack)
@@ -75,6 +115,8 @@ instantiate (EConstr tag arity) heap env
 instantiate (ELet isrec defs body) heap env
               = instantiateLet isrec defs body heap env
 instantiate (ECase e alts) heap env = error "Can't instantiate case exprs"
+{-exs_1-4-}instantiateConstr tag arity heap env
+{-exs_1-4-}           = error "Can't instantiate constructors yet"
 {-exs_1-}instantiateLet isrec defs body heap env
 {-exs_1-}           = error "Can't instantiate let(rec)s yet"
 showResults states
@@ -82,6 +124,8 @@ showResults states
                      showStats (last states)
           ])
 showState :: TiState -> Iseq
+{-exs_1-3-}showState (stack, dump, heap, globals, stats)
+{-exs_1-3-} = iConcat [ showStack heap stack, iNewline ]
 showStack :: TiHeap -> TiStack -> Iseq
 showStack heap stack
  = iConcat [
@@ -101,6 +145,12 @@ showStkNode heap (NAp fun_addr arg_addr)
                showNode (hLookup heap arg_addr), iStr ")"
    ]
 showStkNode heap node = showNode node
+{-exs_1-2-}showNode :: Node -> Iseq
+{-exs_1-2-}showNode (NAp a1 a2) = iConcat [ iStr "NAp ", showAddr a1,
+{-exs_1-2-}                                 iStr " ",    showAddr a2
+{-exs_1-2-}                       ]
+{-exs_1-2-}showNode (NSupercomb name args body) = iStr ("NSupercomb " ++ name)
+{-exs_1-2-}showNode (NNum n) = (iStr "NNum ") `iAppend` (iNum n)
 showAddr :: Addr -> Iseq
 showAddr addr = iStr (show addr)
 
@@ -117,17 +167,36 @@ showStats (stack, dump, heap, globals, stats)
 {-exs_3-}           | NSupercomb Name [Name] CoreExpr   -- Supercombinator
 {-exs_3-}           | NNum Int                          -- Number
 {-exs_3-}           | NInd Addr                         -- Indirection
+{-exs_3--}instantiateAndUpdate 
+{-exs_3--}    :: CoreExpr             -- Body of supercombinator
+{-exs_3--}       -> Addr              -- Address of node to update
+{-exs_3--}       -> TiHeap            -- Heap before instantiation
+{-exs_3--}       -> ASSOC Name Addr   -- Associate parameters to addresses
+{-exs_3--}       -> TiHeap            -- Heap after instantiation
+{-exs_4--}type TiDump = [TiStack]
+{-exs_4--}initialTiDump = []
 {-exs_4-}data Node = NAp Addr Addr                       -- Application
 {-exs_4-}            | NSupercomb Name [Name] CoreExpr   -- Supercombinator
 {-exs_4-}            | NNum Int                          -- Number
 {-exs_4-}            | NInd Addr                         -- Indirection
 {-exs_4-}            | NPrim Name Primitive              -- Primitive
 {-exs_4-}data Primitive = Neg | Add | Sub | Mul | Div
+{-exs_4--}buildInitialHeap :: [CoreScDefn] -> (TiHeap, TiGlobals)
+{-exs_4--}buildInitialHeap sc_defs
+{-exs_4--} = (heap2, sc_addrs ++ prim_addrs)
+{-exs_4--}   where
+{-exs_4--}   (heap1, sc_addrs)   = mapAccuml allocateSc hInitial sc_defs
+{-exs_4--}   (heap2, prim_addrs) = mapAccuml allocatePrim heap1 primitives
 {-exs_4-}primitives :: ASSOC Name Primitive
 {-exs_4-}primitives = [ ("negate", Neg),
 {-exs_4-}               ("+", Add),   ("-", Sub),
 {-exs_4-}               ("*", Mul),   ("/", Div)
 {-exs_4-}             ]
+{-exs_4--}allocatePrim :: TiHeap -> (Name, Primitive) -> (TiHeap, (Name, Addr))
+{-exs_4--}allocatePrim heap (name, prim)
+{-exs_4--} = (heap', (name, addr))
+{-exs_4--}   where
+{-exs_4--}   (heap', addr) = hAlloc heap (NPrim name prim)
 {-exs_4-}primStep state Neg   = primNeg state
 {-exs_4-}primStep state Add = primArith state (+)
 {-exs_4-}primStep state Sub = primArith state (-)
@@ -140,6 +209,7 @@ showStats (stack, dump, heap, globals, stats)
 {-exs_5-}          | NInd Addr                         -- Indirection
 {-exs_5-}          | NPrim Name Primitive              -- Primitive
 {-exs_5-}          | NData Int [Addr]                  -- Tag, list of components
+{-exs_5--}primDyadic :: TiState -> (Node -> Node -> Node) -> TiState
 {-exs_6-}findStackRoots  :: TiStack -> [Addr]
 {-exs_6-}findDumpRoots   :: TiDump -> [Addr]
 {-exs_6-}findGlobalRoots :: TiGlobals -> [Addr]

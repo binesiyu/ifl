@@ -72,12 +72,31 @@ iDisplay :: Iseq -> String        -- Turn an iseq into a string
 {-exs_2-}    where
 {-exs_2-}    keyword | not isrec = "let"
 {-exs_2-}            | isrec = "letrec"
+{-exs_2--}pprDefns :: [(Name,CoreExpr)] -> Iseq
+{-exs_2--}pprDefns defns = iInterleave sep (map pprDefn defns)
+{-exs_2--}                 where
+{-exs_2--}                 sep = iConcat [ iStr ";", iNewline ]
+{-exs_2--}pprDefn :: (Name, CoreExpr) -> Iseq
+{-exs_2--}pprDefn (name, expr)
+{-exs_2--}  = iConcat [ iStr name, iStr " = ", iIndent (pprExpr expr) ]
 iConcat     :: [Iseq] -> Iseq
 iInterleave :: Iseq -> [Iseq] -> Iseq
 pprint prog = iDisplay (pprProgram prog)
+{-exs_1-2-}data Iseq = INil
+{-exs_1-2-}          | IStr String
+{-exs_1-2-}          | IAppend Iseq Iseq
 iNil              = INil
 iAppend seq1 seq2 = IAppend seq1 seq2
 iStr str             = IStr str
+{-exs_1-2-}iIndent seq = seq
+{-exs_1-2-}iNewline = IStr "\n"
+{-exs_1-2-}flatten :: [Iseq] -> String
+{-exs_1-2-}
+{-exs_1-2-}iDisplay seq = flatten [seq]
+{-exs_1-2-}flatten [] = ""
+{-exs_1-2-}flatten (INil : seqs) = flatten seqs
+{-exs_1-2-}flatten (IStr s : seqs) = s ++ (flatten seqs)
+{-exs_1-2-}flatten (IAppend seq1 seq2 : seqs)  = flatten (seq1 : seq2 : seqs)
 {-exs_3-}data Iseq = INil
 {-exs_3-}          | IStr String
 {-exs_3-}          | IAppend Iseq Iseq
@@ -157,6 +176,7 @@ pGreetingsN = (pZeroOrMore pGreeting) `pApply` length
 pApply :: Parser a -> (a -> b) -> Parser b
 pOneOrMoreWithSep :: Parser a -> Parser b -> Parser [a]
 pSat :: (String -> Bool) -> Parser String
+{-exs_2--}pLit s = pSat (== s)
 keywords :: [String]
 keywords = ["let", "letrec", "case", "in", "of", "Pack"]
 pNum :: Parser Int
