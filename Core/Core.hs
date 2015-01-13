@@ -1,10 +1,11 @@
 module Core(module Core.CoreExpr,
            module Core.CorePrelude,
+           parse,
            pprint,
            )where
 
 import           Core.CoreExpr
-{- import           Core.CoreParse -}
+import           Core.CoreParse
 import           Core.CorePrelude
 import           Core.CorePrint
 
