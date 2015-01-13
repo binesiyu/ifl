@@ -1,9 +1,12 @@
-module Core where
+module Core(module Core.CoreExpr,
+           module Core.CorePrelude,
+           pprint,
+           )where
 
 import           Core.CoreExpr
 {- import           Core.CoreParse -}
 import           Core.CorePrelude
-{- import           Core.CorePrint -}
+import           Core.CorePrint
 
 bindersOf :: [(a,b)] -> [a]
 bindersOf defns =  [name | (name, rhs) <- defns]

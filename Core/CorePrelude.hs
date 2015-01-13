@@ -1,4 +1,4 @@
-module Core.CorePrelude where
+module Core.CorePrelude(preludeDefs) where
 
 import           Core.CoreExpr
 
