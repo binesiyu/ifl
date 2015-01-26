@@ -1,12 +1,12 @@
 module Template where
 
-import Data.List (mapAccumL, mapAccumR, delete)
+import           Data.List   (delete, mapAccumL, mapAccumR)
 
-import PreludeDefs
-import Language
-import Parser
-import PrettyPrint
-import Utils
+import           Language
+import           Parser
+import           PreludeDefs
+import           PrettyPrint
+import           Utils
 
 type TiState = (TiStack, TiDump, TiHeap, TiGlobals, TiStats)
 type TiStack = [Addr]
@@ -62,14 +62,14 @@ primNeg (stack, dump, heap, globals, stats) = undefined
 primArith :: TiState -> (Int -> Int -> Int) -> TiState
 primArith = undefined
 
-         
+
 
 
 allocateSc :: TiHeap -> CoreScDefn -> (TiHeap, (Name, Addr))
 allocateSc heap (name, args, body) =(heap', (name, addr))
   where
     (heap', addr) = hAlloc heap (NSupercomb name args body)
-    
+
 
 extraPreludeDefs = []
 
@@ -110,31 +110,31 @@ step state = dispatch (hLookup heap (hd stack))
   where
     (stack, dump, heap, globals, stats) = state
     dispatch (NNum n) = numStep state n
-    dispatch (NAp a1 a2) = apStep state a1 a2 
+    dispatch (NAp a1 a2) = apStep state a1 a2
     dispatch (NSupercomb sc args body) = scStep state sc args body
     dispatch (NInd a) = indStep state (hd stack) a
 
 numStep :: TiState -> Int -> TiState
 numStep (a:[], stk:dump, heap, globals, stats) n = (stk, dump, heap, globals, stats)
 numStep _ _ = error "invalid numStep"
-  
+
 
 {-- (Rule 2.1)
-apStep (stack, dump, heap, globals, stats) a1 a2 = 
+apStep (stack, dump, heap, globals, stats) a1 a2 =
   (a1:stack, dump, heap, globals, stats)
 --}
 -- (Rule 2.8)
-apStep (a:stack, dump, heap, globals, stats) a1 a2 =
+apStep (ss@(a:stack), dump, heap, globals, stats) a1 a2 =
   case node of
     NInd a3 -> (a:stack, dump, hUpdate heap a (NAp a1 a3), globals, stats)
-    otherwise -> (a1:stack, dump, heap, globals, stats)
+    otherwise -> (a1:ss, dump, heap, globals, stats)
   where
     node = hLookup heap a2
 
 
 
 scStep = scStep2_2
--- Rule 2.2 
+-- Rule 2.2
 scStep2_2 :: TiState -> Name -> [Name] -> CoreExpr -> TiState
 scStep2_2 (stack, dump, heap, globals, stats) sc_name arg_names body = (new_stack, dump, new_heap, globals, stats)
   where
@@ -205,12 +205,12 @@ instantiateAndUpdate (EAp e1 e2) upd_addr heap env =
   where
     (heap1, a1) = instantiate e1 heap env
     (heap2, a2) = instantiate e2 heap1 env
-{-    
+{-
 instantiateAndUpdate (EConstr tag arity) upd_addr heap env = instantiateAndUpdateConstr tag arity heap env
 instantiateAndUpdate (ELet isrec defs body) upd_addr heap env = instantiateAndUpdateLet isrec defs body upd_addr heap env
 instantiateAndUpdate (ECase e alts) upd_addr heap env = error "Can't instantiate case exprs"
 instantiateAndUpdateConstr tag arity update_addr heap env = error "Can't instantiate constructors yet"
-instantiateAndUpdateLet = undefined    
+instantiateAndUpdateLet = undefined
 -}
 
 
@@ -221,13 +221,14 @@ showResults states =
 
 showState :: TiState ->Iseq
 showState (stack, dump, heap, globals, tats) =
-  iConcat ([showStack heap stack, iNewline] ++ showAddress heap)
+  iConcat ([showStack heap stack, iNewline] ++ [iStr "====",iNewline ] ++ showAddress heap)
 
 
 showAddress:: Heap Node -> [Iseq]
 showAddress hp@(Heap size _ cts) = [iStr $ show size, iNewline] ++ [showNodes hp]
   where
-    showNodes = iInterleave iNewline . map (showNode . hLookup hp) . hAddresses
+    showNodes = iInterleave iNewline . map showAddrEx . hAddresses
+    showAddrEx a = iConcat [ showAddr a,iStr " ",showNode . hLookup hp $ a]
 
 
 
@@ -240,7 +241,7 @@ showStack heap stack =
     show_stack_item addr =
       iConcat [ showFWAddr addr, iStr ": ",
                 showStkNode heap (hLookup heap addr)]
-      
+
 showStkNode::TiHeap -> Node -> Iseq
 showStkNode heap (NAp fun_addr arg_addr) =
   iConcat [ iStr "NAp ", showFWAddr fun_addr,
@@ -252,6 +253,7 @@ showNode (NAp a1 a2) =  iConcat [ iStr "NAp ", showAddr a1, iStr " ", showAddr a
 showNode (NSupercomb name args body) = iStr ("NSupercomb " ++ name)
 showNode (NNum n) = (iStr "NNum ") `iAppend` (iNum n)
 showNode (NInd a) = (iStr "NInd ") `iAppend` (iNum a)
+showNode (NPrim n p) = (iStr "NPrim ") `iAppend` (iStr (show p))
 
 showAddr :: Addr -> Iseq
 showAddr addr = iStr (show addr)
@@ -266,4 +268,4 @@ showStats (stack, dump, heap, globals, stats) =
            iNum (tiStatGetSteps stats)]
 
 
-           
+

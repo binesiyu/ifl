@@ -3,8 +3,8 @@ module Parser where
 import qualified Data.Char as C (isAlpha, isDigit, isSpace)
 import qualified Data.List as L (isPrefixOf)
 
-import Language
-import Utils
+import           Language
+import           Utils
 
 
 type Token = String
@@ -36,7 +36,7 @@ clex (c:cs)
     num_token = c : takeWhile isDigit cs
     rest_cs = dropWhile isDigit cs
 
-clex (c:cs)                
+clex (c:cs)
   | isAlpha c = (var_tok) : clex rest_cs
   where
     var_tok = c : takeWhile isIdChar cs
@@ -70,13 +70,13 @@ pVar::Parser Name
 pVar [] = []
 pVar tks = pSat isVar tks
   where
-    isVar ss | ss == []  = error "clex error"    
+    isVar ss | ss == []  = error "clex error"
     isVar ss | ss `elem` keywords = False
     isVar (a:as) = elem a (['a'..'z']++[ 'A'..'Z'])
 pNum :: Parser Int
 pNum  = pApply (pSat isNum) toInt
   where
-    isNum  = and . map isDigit 
+    isNum  = and . map isDigit
     isDigit = flip elem ['0'..'9']
     toInt as = (read as)::Int
 
@@ -121,9 +121,9 @@ pOneOrMore p tks = [ (a:as, tks'')| (a, tks') <- p tks, (as, tks'') <- pZeroOrMo
       where
         res = p tks
 -}
-pZeroOrMore p = (pOneOrMore p) `pAlt` (pEmpty []) 
+pZeroOrMore p = (pOneOrMore p) `pAlt` (pEmpty [])
 
-pApply::Parser a -> (a -> b) => Parser b
+pApply::Parser a -> (a -> b) -> Parser b
 pApply p f tks = [(f a, tks') | (a, tks') <- p tks]
 
 pOneOrMoreWithSep :: Parser a -> Parser b -> Parser [a]
@@ -160,7 +160,7 @@ pChoice = pThen4 mk_alt pN (pOneOrMore pVar) (pLit "->") pExpr
     take_num a b c = b
 
 
-pExpr = pExpr1 `pAlt` pLet `pAlt` pLetrec `pAlt` pCase `pAlt` pLambda `pAlt` pAExpr 
+pExpr = pExpr1 `pAlt` pLet `pAlt` pLetrec `pAlt` pCase `pAlt` pLambda `pAlt` pAExpr
 
 pAExpr = pVar' `pAlt` pNum' `pAlt` ppExpr -- `pAlt` pPack
   where
@@ -183,7 +183,7 @@ pCase =  pThen4 f (pLit "case") pExpr (pLit "of") pAlts
   where
     f a b c d = ECase b d
 
-  
+
 pLambda = pThen4 f (pLit "\\") (pOneOrMore pVar) (pLit ".") pExpr
   where
     f a b c d = ELam b d
