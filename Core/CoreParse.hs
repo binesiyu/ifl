@@ -93,12 +93,7 @@ pEmpty :: a -> Parser a
 pEmpty v toks = [(v,toks)]
 
 pOneOrMore :: Parser a -> Parser [a]
-pOneOrMore p = undefined
-{- pOneOrMore p toks = let v = (p toks) -}
-                    {- in -}
-                      {- case v of -}
-                        {- [] -> error "Not One More" -}
-                        {- _  -> v ++ (pZeroOrMore p (fst (last v))) -}
+pOneOrMore p = pThen (:) p $ pZeroOrMore p
 
 
 pOneOrMoreWithSep :: Parser a -> Parser b -> Parser [a]
